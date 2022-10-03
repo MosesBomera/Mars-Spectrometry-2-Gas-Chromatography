@@ -54,8 +54,54 @@ def plot_mass_spectrum(
 ):
     """
     Given sample data, plot a spectogram at a given timestamp.
+
+    Paramters
+    ---------
+    ax
+        Matplotlib axes for plotting.
+    data
+        A dataframe containing relevant information for the plot.
+    iter_item
+        The descriptor for the data plotted in a given chart.
     """
     # Get the timestamp data.
     timestamp = data[data['time']==iter_item]
     ax.bar(timestamp['mass'], timestamp['intensity'], width=5)
     ax.set_title(f"{iter_item}")
+
+
+def plot_spectrogram(
+    ax, 
+    data, 
+    iter_item
+):
+    """
+    Paramters
+    ---------
+    ax
+        Matplotlib axes for plotting.
+    data
+        A dataframe containing relevant information for the plot.
+    iter_item
+        The descriptor for the data plotted in a given chart.
+    """
+    # To avoid over-engineering, this function expects the data to be stored 
+    # under a folder named 'data/'.
+    sample = pd.read_csv(f"data/{data[data.sample_id==iter_item].features_path.squeeze()}")
+
+    # For visual clarity, we will round these intensity values to 
+    # the nearest whole number and average the intensity.
+    sample["mass"] = sample["mass"].round()
+    sample = (
+        sample.groupby(
+            ["time", "mass"]
+        )["intensity"].aggregate("mean").reset_index()
+    )
+
+    for m in sample["mass"].unique():
+        plt.plot(
+            sample[sample["mass"] == m]["time"],
+            sample[sample["mass"] == m]["intensity"],
+        )
+
+    plt.title(iter_item)
