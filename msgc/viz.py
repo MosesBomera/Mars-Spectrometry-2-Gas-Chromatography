@@ -7,7 +7,7 @@ def grid_plot(
     plot_func,
     iter_items,
     cols: Optional[int] = 4
-    ):
+):
     """
     Plot a grid of plots specified by the plot_func.
     Parameters
@@ -24,10 +24,11 @@ def grid_plot(
         The number of columns to include in the grid.
     """
     # Check that plot_func required arguments exist.
-    if not plot_func.__code__.co_varnames[:plot_func.__code__.co_argcount] == ('ax', 'data', 'iter_item'):
+    required_args = plot_func.__code__.co_varnames[:plot_func.__code__.co_argcount]
+    if not required_args == ('ax', 'data', 'iter_item'):
         raise ValueError(
             f"Unknown parameter(s):\
-            {set(plot_func.__code__.co_varnames[:plot_func.__code__.co_argcount]).difference(['ax', 'data', 'iter_item'])}.")
+            {set(required_args).difference(['ax', 'data', 'iter_item'])}.")
 
     # Rows.
     no_items = len(iter_items)
