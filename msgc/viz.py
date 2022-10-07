@@ -87,7 +87,7 @@ def plot_spectrogram(
     """
     # To avoid over-engineering, this function expects the data to be stored 
     # under a folder named 'data/'.
-    sample = pd.read_csv(f"data/{data[data.sample_id==iter_item].features_path.squeeze()}")
+    sample = pd.read_csv(f"data/{data.loc[iter_item].features_path}")
 
     # For visual clarity, we will round these intensity values to 
     # the nearest whole number and average the intensity.

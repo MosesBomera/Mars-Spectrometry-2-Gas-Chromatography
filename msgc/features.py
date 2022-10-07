@@ -1,4 +1,6 @@
+import itertools
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import minmax_scale
 
 # PRE-PROCESSING
@@ -103,7 +105,7 @@ def int_per_timebin(df):
     # Create a series of time bins
     timerange = pd.interval_range(start=0, end=25, freq=0.5)
 
-    # Make dataframe with rows that are combinations of all temperature bins and all m/z values
+    # Make dataframe with rows that are combinations of all time bins and all m/z values
     allcombs = list(itertools.product(timerange, [*range(0, 350)]))
 
     allcombs_df = pd.DataFrame(allcombs, columns=["time_bin", "rounded_mass"])
