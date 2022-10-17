@@ -131,3 +131,4 @@ dmypy.json
 # Data folders
 data/
 submissions/
+lightning_logs/
