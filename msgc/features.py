@@ -20,9 +20,12 @@ def get_time_mass_stats(fpath):
     return time_min, time_max, time_range, mass_min, mass_max, mass_range
 
 
-def drop_frac_and_He(df):
+def drop_frac_and_He(
+    df, 
+    mass_cutoff = 350
+):
     """
-    Rounds fractional m/z values, drops m/z values > 350, and drops carrier gas m/z
+    Rounds fractional m/z values, drops m/z values > mass_cutoff, and drops carrier gas m/z
 
     Args:
         df: a dataframe representing a single sample, containing m/z values
@@ -39,9 +42,9 @@ def drop_frac_and_He(df):
     df = df.groupby(["time", "rounded_mass"])["intensity"].aggregate("mean").reset_index()
 
     # drop m/z values greater than 350
-    df = df[df["rounded_mass"] <= 350]
+    df = df[df["rounded_mass"] <= mass_cutoff]
 
-    # drop carrier gas
+    # drop carrier gas.
     df = df[df["rounded_mass"] != 4]
 
     return df
