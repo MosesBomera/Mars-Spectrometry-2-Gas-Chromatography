@@ -7,102 +7,105 @@ from sklearn.preprocessing import minmax_scale
 
 def get_time_mass_stats(fpath):
     """Summary statistics for time and m/z for training set."""
-    df = pd.read_csv(f"data/{fpath}")
+    data = pd.read_csv(f"data/{fpath}")
     # Time
-    time_min = df["time"].min()
-    time_max = df["time"].max()
+    time_min = data["time"].min()
+    time_max = data["time"].max()
     time_range = time_max - time_min
     # m/z
-    mass_min = df["mass"].min()
-    mass_max = df["mass"].max()
+    mass_min = data["mass"].min()
+    mass_max = data["mass"].max()
     mass_range = mass_max - mass_min
     # Statistics
     return time_min, time_max, time_range, mass_min, mass_max, mass_range
 
 
 def drop_frac_and_He(
-    df, 
+    data, 
     mass_cutoff = None
 ):
     """
     Rounds fractional m/z values, drops m/z values > mass_cutoff, and drops carrier gas m/z
 
     Args:
-        df: a dataframe representing a single sample, containing m/z values.
+        data: a dataframe representing a single sample, containing m/z values.
         mass_cutoff: integer specifying the rounded mass cutoff.
 
     Returns:
         The dataframe without fractional m/z and carrier gas m/z.
     """
-    df = df.copy(deep=True)
+    data = data.copy(deep=True)
 
     # rounds m/z fractional values
-    df["rounded_mass"] = df["mass"].transform(round)
+    data["rounded_mass"] = data["mass"].transform(round)
 
     # aggregates across rounded values
-    df = df.groupby(["time", "rounded_mass"])["intensity"].aggregate("mean").reset_index()
+    data = data.groupby(["time", "rounded_mass"])["intensity"].aggregate("mean").reset_index()
 
     # drop m/z values greater than mass_cutoff
     if mass_cutoff:
-        df = df[df["rounded_mass"] <= mass_cutoff].reset_index(drop=True)
+        data = data[data["rounded_mass"] <= mass_cutoff].reset_index(drop=True)
 
     # drop carrier gas.
-    df = df[df["rounded_mass"] != 4]
+    data = data[data["rounded_mass"] != 4]
 
-    return df
+    return data
 
 
-def remove_background_intensity(df):
+def remove_background_intensity(data):
     """
     Subtracts minimum abundance value
 
     Args:
-        df: dataframe with 'mass' and 'intensity' columns
+        data: dataframe with 'mass' and 'intensity' columns
 
     Returns:
         dataframe with minimum abundance subtracted for all observations
     """
 
-    df["intensity_minsub"] = df.groupby(["rounded_mass"])["intensity"].transform(
+    data["intensity_minsub"] = data.groupby(["rounded_mass"])["intensity"].transform(
         lambda x: (x - x.min())
     )
 
-    return df
+    return data
 
 
-def scale_intensity(df):
+def scale_intensity(data):
     """
     Scale abundance from 0-1 according to the min and max values across entire sample
 
     Args:
-        df: dataframe containing abundances and m/z
+        data: dataframe containing abundances and m/z
 
     Returns:
         dataframe with additional column of scaled abundances
     """
 
-    df["int_minsub_scaled"] = minmax_scale(df["intensity_minsub"].astype(float))
+    data["int_minsub_scaled"] = minmax_scale(data["intensity_minsub"].astype(float))
 
-    return df
+    return data
 
 
-def preprocess_sample(df):
+def preprocess_sample(
+    data,
+    mass_cutoff
+):
     # Preprocess function
-    df = drop_frac_and_He(df)
-    df = remove_background_intensity(df)
-    df = scale_intensity(df)
-    return df
+    data = drop_frac_and_He(data, mass_cutoff=mass_cutoff)
+    data = remove_background_intensity(data)
+    data = scale_intensity(data)
+    return data
 
 # FEATURE ENGINEERING
 
-def int_per_timebin(df):
+def int_per_timebin(data):
 
     """
     Transforms dataset to take the preprocessed max abundance for each
     time range for each m/z value
 
     Args:
-        df: dataframe to transform
+        data: dataframe to transform
 
     Returns:
         transformed dataframe
@@ -116,20 +119,20 @@ def int_per_timebin(df):
     allcombs_df = pd.DataFrame(allcombs, columns=["time_bin", "rounded_mass"])
 
     # Bin times
-    df["time_bin"] = pd.cut(df["time"], bins=timerange)
+    data["time_bin"] = pd.cut(data["time"], bins=timerange)
 
     # Combine with a list of all time bin-m/z value combinations
-    df = pd.merge(allcombs_df, df, on=["time_bin", "rounded_mass"], how="left")
+    data = pd.merge(allcombs_df, data, on=["time_bin", "rounded_mass"], how="left")
 
     # Aggregate to time bin level to find max
-    df = df.groupby(["time_bin", "rounded_mass"]).max("int_minsub_scaled").reset_index()
+    data = data.groupby(["time_bin", "rounded_mass"]).max("int_minsub_scaled").reset_index()
 
     # Fill in 0 for intensity values without information
-    df = df.replace(np.nan, 0)
+    data = data.replace(np.nan, 0)
 
     # Reshape so each row is a single sample
-    df = df.pivot_table(
+    data = data.pivot_table(
         columns=["rounded_mass", "time_bin"], values=["int_minsub_scaled"]
     )
 
-    return df
+    return data
