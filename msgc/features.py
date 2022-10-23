@@ -99,7 +99,6 @@ def preprocess_sample(
 # FEATURE ENGINEERING
 
 def int_per_timebin(data):
-
     """
     Transforms dataset to take the preprocessed max abundance for each
     time range for each m/z value
@@ -175,10 +174,10 @@ def int_metric_per_timebin(
     data['time_bin'] = pd.cut(data['time'], bins=timerange, labels=list(range(0,len(allcombs))))
     data = pd.merge(allcombs_df,data, on=['time_bin', 'rounded_mass'], how='left')
     data = data.groupby(['time_bin', 'rounded_mass'])['int_minsub_scaled'].agg(metrics).reset_index()
+    # Create an id. 
+    data['id'] = data['rounded_mass'].astype(str) + '_' + data['time_bin'].astype(str) 
+    data = data.melt(id_vars=['id'], value_vars=['mean', 'std', 'min', 'max', 'last'],
+                            var_name='metric_name', value_name='metric_value')
+    data['metric'] = data['metric_name'] + '_' + data['id']
     
-    # Create Tabular data.
-    data = data.melt(id_vars=['time_bin', 'rounded_mass'], var_name='metric', value_name='metric_value')
-    data['mass_variable'] = data['rounded_mass'].astype(str)+data['metric']
-    data = data.drop(columns=['rounded_mass', 'metric'])
-    
-    return data.pivot_table(columns=['time_bin', 'mass_variable'], values=['metric_value'])
+    return data.pivot_table(columns='metric', values='metric_value', fill_value=0.0, dropna=False)
