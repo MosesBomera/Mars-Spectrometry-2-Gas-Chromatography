@@ -136,3 +136,49 @@ def int_per_timebin(data):
     )
 
     return data
+
+
+def int_metric_per_timebin(
+    data,
+    max_time = 40,
+    time_freq = 0.5,
+    max_mass = 650,
+    metrics = ['mean', 'std', 'min', 'max', 'last']
+):
+    """
+    Transform the sample dataset to the metrics per defined bin.
+    
+    Parameters
+    ----------
+    data
+        The sample data to transform.
+    max_time
+        Upper time range value.
+    time_freq
+        Optionally, the time frequency.
+    max_mass
+        Upper mass range value.
+    metrics
+        The metrics to calculate per bin.
+        
+    Returns
+    -------
+    dataT
+        Transformed dataset.
+    """
+    # Create a series of time bins
+    timerange = pd.interval_range(start=0, end=max_time, freq=time_freq)
+    allcombs = list(itertools.product(timerange, [*range(0,max_mass)]))
+    allcombs_df = pd.DataFrame(allcombs, columns=['time_bin', 'rounded_mass'])
+    
+    # Sample
+    data['time_bin'] = pd.cut(data['time'], bins=timerange, labels=list(range(0,len(allcombs))))
+    data = pd.merge(allcombs_df,data, on=['time_bin', 'rounded_mass'], how='left')
+    data = data.groupby(['time_bin', 'rounded_mass'])['int_minsub_scaled'].agg(metrics).reset_index()
+    
+    # Create Tabular data.
+    data = data.melt(id_vars=['time_bin', 'rounded_mass'], var_name='metric', value_name='metric_value')
+    data['mass_variable'] = data['rounded_mass'].astype(str)+data['metric']
+    data = data.drop(columns=['rounded_mass', 'metric'])
+    
+    return data.pivot_table(columns=['time_bin', 'mass_variable'], values=['metric_value'])
