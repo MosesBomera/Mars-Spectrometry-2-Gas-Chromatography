@@ -88,7 +88,7 @@ def scale_intensity(data):
 
 def preprocess_sample(
     data,
-    mass_cutoff
+    mass_cutoff = None
 ):
     # Preprocess function
     data = drop_frac_and_He(data, mass_cutoff=mass_cutoff)
